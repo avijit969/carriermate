@@ -56,6 +56,17 @@ const _schema = i.schema({
       duration: i.string(),
       order: i.number(),
     }),
+    quizzes: i.entity({
+      title: i.string(),
+      description: i.string(),
+    }),
+    questions: i.entity({
+      question: i.string(),
+      options: i.json(), // Array of strings
+      correctAnswer: i.string(),
+      explanation: i.string(),
+      order: i.number(),
+    }),
     enrollments: i.entity({
       progress: i.number(), // 0-100
       status: i.string(), // "active", "completed"
@@ -64,6 +75,32 @@ const _schema = i.schema({
   },
   rooms: {},
   links: {
+    moduleQuiz: {
+      forward: {
+        on: "quizzes",
+        has: "one",
+        label: "module",
+        onDelete: "cascade",
+      },
+      reverse: {
+        on: "modules",
+        has: "one",
+        label: "quiz",
+      },
+    },
+    quizQuestions: {
+      forward: {
+        on: "questions",
+        has: "one",
+        label: "quiz",
+        onDelete: "cascade",
+      },
+      reverse: {
+        on: "quizzes",
+        has: "many",
+        label: "questions",
+      },
+    },
     courseModules: {
       forward: {
         on: "modules",

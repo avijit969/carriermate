@@ -1,12 +1,16 @@
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Dimensions } from 'react-native';
-import React from 'react';
+import { id } from '@instantdb/react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import React, { useEffect, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { db } from '@/lib/db';
-import YoutubePlayer from "react-native-youtube-iframe";
 import { useColorScheme } from '@/hooks/useColorScheme';
 import Button from '@/components/ui/Button';
+import VideoPlayer from '@/components/module/VideoPlayer';
+import ArticleViewer from '@/components/module/ArticleViewer';
+import QuizViewer from '@/components/module/QuizViewer';
+import ModuleNavigation from '@/components/module/ModuleNavigation';
 
 export default function ModuleScreen() {
     const { id: courseIdParam, moduleId: moduleIdParam } = useLocalSearchParams();
@@ -17,12 +21,17 @@ export default function ModuleScreen() {
     const { colorScheme } = useColorScheme();
     const isDark = colorScheme === 'dark';
 
+    const [quizGenerating, setQuizGenerating] = useState(false);
+
     const { data, isLoading } = db.useQuery({
         modules: {
             $: {
                 where: {
                     id: moduleId
                 }
+            },
+            quiz: {
+                questions: {}
             }
         },
         recommendedCourses: {
@@ -35,15 +44,63 @@ export default function ModuleScreen() {
         }
     });
 
+    const module = data?.modules?.[0];
+    const quizData = module?.quiz;
+    const quiz = Array.isArray(quizData) ? quizData[0] : quizData;
+
+    const course = data?.recommendedCourses?.[0];
+    const allModules = (course?.modules || []).sort((a: any, b: any) => (a.order || 0) - (b.order || 0));
+
+    const generateQuizContent = async () => {
+        if (quizGenerating || !module || !course) return;
+        setQuizGenerating(true);
+        try {
+            const { generateQuiz } = await import('@/lib/ai');
+            const generatedQuiz = await generateQuiz(module.title, course.title);
+
+            const quizId = id();
+            const txs: any[] = [
+                // Create Quiz Link to Module
+                db.tx.quizzes[quizId].update({
+                    title: generatedQuiz.title,
+                    description: generatedQuiz.description
+                }).link({ module: module.id }),
+            ];
+
+            // Create Questions Link to Quiz
+            generatedQuiz.questions.forEach((q: any, index: number) => {
+                const questionId = id();
+                txs.push(
+                    db.tx.questions[questionId].update({
+                        question: q.question,
+                        options: q.options,
+                        correctAnswer: q.correctAnswer,
+                        explanation: q.explanation,
+                        order: index
+                    }).link({ quiz: quizId })
+                );
+            });
+
+            await db.transact(txs);
+        } catch (error) {
+            console.error("Failed to generate quiz", error);
+            Alert.alert("Error", "Could not generate quiz. Please try again.");
+        } finally {
+            setQuizGenerating(false);
+        }
+    };
+
+    useEffect(() => {
+        if (module && module.type === 'quiz' && !quiz && !quizGenerating && !isLoading) {
+            generateQuizContent();
+        }
+    }, [module, quiz, isLoading]);
+
     if (isLoading) return (
         <View className="flex-1 items-center justify-center bg-slate-50 dark:bg-black">
             <ActivityIndicator size="large" color="#4F46E5" />
         </View>
     );
-
-    const module = data?.modules?.[0];
-    const course = data?.recommendedCourses?.[0];
-    const allModules = (course?.modules || []).sort((a: any, b: any) => (a.order || 0) - (b.order || 0));
 
     if (!module) return (
         <SafeAreaView className="flex-1 items-center justify-center bg-slate-50 dark:bg-black">
@@ -56,10 +113,16 @@ export default function ModuleScreen() {
     const nextModule = allModules[currentIndex + 1];
     const prevModule = allModules[currentIndex - 1];
 
-    const getYoutubeVideoId = (url: string) => {
-        if (!url) return null;
-        const videoIdMatch = url.match(/(?:youtu\.be\/|youtube\.com\/watch\?v=|youtube\.com\/embed\/)([^#&?]*)/);
-        return videoIdMatch ? videoIdMatch[1] : null;
+    const handlePrev = () => {
+        if (prevModule) router.replace(`/course/${courseId}/module/${prevModule.id}`);
+    };
+
+    const handleNext = () => {
+        if (nextModule) router.replace(`/course/${courseId}/module/${nextModule.id}`);
+    };
+
+    const handleFinish = () => {
+        router.replace(`/course/${courseId}`);
     };
 
     return (
@@ -80,15 +143,8 @@ export default function ModuleScreen() {
             </View>
 
             <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 40 }}>
-                {module.type === 'video' ? (
-                    <View className="w-full bg-black">
-                        <YoutubePlayer
-                            height={220}
-                            play={false}
-                            videoId={getYoutubeVideoId(module.content) || undefined}
-                        />
-                    </View>
-                ) : null}
+
+                {module.type === 'video' && <VideoPlayer content={module.content} />}
 
                 <View className="px-6 py-6">
                     <View className="flex-row justify-between items-center mb-6">
@@ -106,52 +162,31 @@ export default function ModuleScreen() {
                         {module.description}
                     </Text>
 
-                    {module.type === 'article' && (
-                        <View className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm mb-8">
-                            <Text className="text-lg font-serif text-slate-800 dark:text-slate-200 leading-8">
-                                {module.content}
-                            </Text>
-                        </View>
+                    {module.type === 'article' && <ArticleViewer content={module.content} />}
+
+                    {module.type === 'quiz' && (
+                        <QuizViewer
+                            quiz={quiz}
+                            generating={quizGenerating}
+                            onGenerate={generateQuizContent}
+                        />
                     )}
 
-                    {module.type !== 'video' && module.type !== 'article' && (
+                    {module.type !== 'video' && module.type !== 'article' && module.type !== 'quiz' && (
                         <View className="bg-white dark:bg-slate-900 p-8 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm mb-8 items-center justify-center border-dashed">
                             <Feather name="tool" size={32} color={isDark ? "#475569" : "#cbd5e1"} />
                             <Text className="text-slate-400 dark:text-slate-500 mt-4 text-center">Interactive content for '{module.type}' coming soon.</Text>
                         </View>
                     )}
 
-
-                    {/* Navigation Buttons */}
-                    <View className="flex-row justify-between items-center mt-4">
-                        {prevModule ? (
-                            <TouchableOpacity
-                                onPress={() => router.replace(`/course/${courseId}/module/${prevModule.id}`)}
-                                className="flex-row items-center px-4 py-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
-                            >
-                                <Feather name="chevron-left" size={20} color={isDark ? "#cbd5e1" : "#475569"} />
-                                <Text className="ml-2 font-medium text-slate-700 dark:text-slate-300">Previous</Text>
-                            </TouchableOpacity>
-                        ) : <View />}
-
-                        {nextModule ? (
-                            <TouchableOpacity
-                                onPress={() => router.replace(`/course/${courseId}/module/${nextModule.id}`)}
-                                className="flex-row items-center px-6 py-3 rounded-xl bg-indigo-600"
-                            >
-                                <Text className="mr-2 font-bold text-white">Next Lesson</Text>
-                                <Feather name="chevron-right" size={20} color="white" />
-                            </TouchableOpacity>
-                        ) : (
-                            <TouchableOpacity
-                                onPress={() => router.replace(`/course/${courseId}`)}
-                                className="flex-row items-center px-6 py-3 rounded-xl bg-green-600"
-                            >
-                                <Text className="mr-2 font-bold text-white">Finish Course</Text>
-                                <Feather name="check-circle" size={20} color="white" />
-                            </TouchableOpacity>
-                        )}
-                    </View>
+                    <ModuleNavigation
+                        prevModule={prevModule}
+                        nextModule={nextModule}
+                        onPrev={handlePrev}
+                        onNext={handleNext}
+                        onFinish={handleFinish}
+                        isDark={isDark}
+                    />
 
                 </View>
             </ScrollView>

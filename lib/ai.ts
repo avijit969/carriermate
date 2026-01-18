@@ -129,3 +129,43 @@ export async function generateCourseContent(courseTitle: string, userProfile: an
     throw error;
   }
 }
+
+const quizQuestionSchema = z.object({
+  question: z.string(),
+  options: z.array(z.string()).length(4),
+  correctAnswer: z.string(),
+  explanation: z.string(),
+});
+
+const quizSchema = z.object({
+  title: z.string(),
+  description: z.string(),
+  questions: z.array(quizQuestionSchema),
+});
+
+export async function generateQuiz(moduleTitle: string, courseTitle: string) {
+  const prompt = `
+    Generate a short quiz (5 questions) for the module "${moduleTitle}" which is part of the course "${courseTitle}".
+    
+    The quiz should test the user's understanding of the key concepts in this module.
+    For each question:
+    - Provide a clear question text.
+    - Provide 4 distinct options.
+    - Indicate the correct answer (must be one of the options).
+    - Provide a brief explanation of why the answer is correct.
+  `;
+
+  try {
+    const { output } = await generateText({
+      model: google("gemini-2.5-flash-lite"),
+      output: Output.object({
+        schema: quizSchema,
+      }),
+      prompt: prompt,
+    });
+    return output;
+  } catch (error) {
+    console.error("Quiz Generation Error:", error);
+    throw error;
+  }
+}
