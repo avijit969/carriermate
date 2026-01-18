@@ -44,7 +44,7 @@ function Main(props: { color?: Color }) {
         </Text>
       </View>
 
-      <Link href="/onboarding" asChild>
+      <Link href="/login" asChild>
         <TouchableOpacity className="bg-indigo-600 px-8 py-4 rounded-full shadow-lg shadow-indigo-200 active:scale-95 transition-all">
           <Text className="text-white text-xl font-bold">Get Started</Text>
         </TouchableOpacity>

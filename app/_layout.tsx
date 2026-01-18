@@ -10,6 +10,8 @@ import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
 
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { db } from "@/lib/db";
+import LoadingScreen from "@/components/LoadingScreen";
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -17,15 +19,23 @@ export default function RootLayout() {
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
   });
 
-  if (!loaded) {
-    // Async font loading only occurs in development.
-    return null;
+  const { isLoading, user } = db.useAuth();
+  console.log(user);
+  if (isLoading) {
+    return <LoadingScreen />;
   }
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
       <Stack>
-        <Stack.Screen name="index" options={{ headerShown: false }} />
+        <Stack.Protected guard={!user}>
+          <Stack.Screen name="index" options={{ headerShown: false }} />
+          <Stack.Screen name="(auth)/login" options={{ headerShown: false }} />
+        </Stack.Protected>
+        <Stack.Protected guard={!!user}>
+          <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        </Stack.Protected>
         <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style="auto" />
