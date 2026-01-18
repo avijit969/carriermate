@@ -7,10 +7,11 @@ import { db } from '@/lib/db';
 import Button from '@/components/ui/Button';
 import { useAlert } from '@/components/ui/CustomAlert';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { id } from '@instantdb/react-native';
 
 export default function CourseDetailScreen() {
-    const { id } = useLocalSearchParams();
-    const courseId = Array.isArray(id) ? id[0] : id;
+    const { id: paramId } = useLocalSearchParams();
+    const courseId = Array.isArray(paramId) ? paramId[0] : paramId;
     const router = useRouter();
     const { user } = db.useAuth();
     const { showAlert } = useAlert();
@@ -23,14 +24,15 @@ export default function CourseDetailScreen() {
         recommendedCourses: {
             $: {
                 where: {
-                    id: courseId || ""
+                    id: courseId
                 }
-            }
+            },
+            modules: {}
         },
         profiles: {
             $: {
                 where: {
-                    "user.id": user?.id
+                    "user.id": user?.id!
                 }
             }
         }
@@ -39,12 +41,15 @@ export default function CourseDetailScreen() {
     const course = data?.recommendedCourses?.[0];
     const profile = data?.profiles?.[0];
 
+    // Safe access to modules, ensuring it's an array and sorted
+    const modules = (course?.modules || []).sort((a: any, b: any) => (a.order || 0) - (b.order || 0));
+
     useEffect(() => {
         // If course loads and has no modules, auto-generate them
-        if (course && !course.modules && !generating) {
+        if (course && modules.length === 0 && !generating) {
             generateContent();
         }
-    }, [course]);
+    }, [course, modules.length]);
 
     const generateContent = async () => {
         if (!course || generating) return;
@@ -52,27 +57,77 @@ export default function CourseDetailScreen() {
         try {
             console.log("Generating content for:", course.title);
             const { generateCourseContent } = await import('@/lib/ai');
-            const modules = await generateCourseContent(course.title, profile);
+            const generatedModules = await generateCourseContent(course.title, profile);
 
-            await db.transact(
-                db.tx.recommendedCourses[course.id].update({
-                    modules: modules
-                })
-            );
+            const txs = generatedModules.map((m: any, index: number) => {
+                const moduleId = id();
+                return db.tx.modules[moduleId].update({
+                    ...m,
+                    order: index
+                }).link({ course: course.id });
+            });
+
+            await db.transact(txs);
             showAlert({ title: "Content Ready", message: "Course content has been generated!", type: 'success' });
         } catch (err) {
-            console.error(err);
-            showAlert({ title: "Error", message: "Failed to generate course content.", type: 'error' });
-            // Fallback content in case of error
+            console.error("Generation failed:", err);
+
+            const isQuotaError = (err as any).message?.includes('Quota exceeded') || (err as any).message?.includes('429');
+
+            if (isQuotaError) {
+                showAlert({ title: "AI Limit Reached", message: "Using standard curriculum due to high traffic.", type: 'info' });
+            } else {
+                showAlert({ title: "Note", message: "Could not generate custom content. Using standard curriculum.", type: 'warning' });
+            }
+
+            // Fallback content - Standard Curriculum
             const fallbackModules = [
-                { title: 'Introduction', description: 'Overview of the course.', duration: '15 mins', type: 'video', content: 'Welcome to the course.' },
-                { title: 'Basics', description: 'Fundamental concepts.', duration: '45 mins', type: 'article', content: 'Read Chapter 1.' }
+                {
+                    title: 'Course Introduction',
+                    description: 'An introduction to the course objectives and outcomes.',
+                    duration: '10 mins',
+                    type: 'video',
+                    content: 'https://www.youtube.com/watch?v=kmp6V64X548'
+                },
+                {
+                    title: 'Core Concepts',
+                    description: 'Understanding the fundamental principles.',
+                    duration: '45 mins',
+                    type: 'article',
+                    content: 'This module covers the core concepts essential for mastering this subject. You will learn about the theoretical underpinnings and practical applications...'
+                },
+                {
+                    title: 'Practical Application',
+                    description: 'Applying what you have learned in real-world scenarios.',
+                    duration: '1 hour',
+                    type: 'video',
+                    content: 'https://www.youtube.com/watch?v=jNQXAC9IVRw'
+                },
+                {
+                    title: 'Mid-Course Quiz',
+                    description: 'Test your knowledge so far.',
+                    duration: '20 mins',
+                    type: 'quiz',
+                    content: 'Quiz placeholder'
+                },
+                {
+                    title: 'Advanced Topics',
+                    description: 'Exploring deeper complex subjects.',
+                    duration: '1.5 hours',
+                    type: 'article',
+                    content: 'In this advanced section, we delve into complex case studies and high-level strategies used by industry professionals.'
+                }
             ];
-            await db.transact(
-                db.tx.recommendedCourses[course.id].update({
-                    modules: fallbackModules
-                })
-            );
+
+            const txs = fallbackModules.map((m: any, index: number) => {
+                const moduleId = id();
+                return db.tx.modules[moduleId].update({
+                    ...m,
+                    order: index
+                }).link({ course: course.id });
+            });
+
+            await db.transact(txs);
         } finally {
             setGenerating(false);
         }
@@ -129,11 +184,11 @@ export default function CourseDetailScreen() {
                         <View className="items-center py-10 bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 border-dashed">
                             <ActivityIndicator size="large" color="#4F46E5" className="mb-4" />
                             <Text className="text-slate-600 dark:text-gray-300 font-medium text-lg">Designing Curriculum...</Text>
-                            <Text className="text-slate-400 dark:text-gray-500 text-sm mt-1">Our AI is tailoring modules for you.</Text>
+                            <Text className="text-slate-400 dark:text-gray-500 text-sm mt-1">Our AI is generating modules for you.</Text>
                         </View>
                     ) : (
                         <View>
-                            {course.modules?.map((module: any, index: number) => (
+                            {modules.map((module: any, index: number) => (
                                 <View key={index} className="bg-white dark:bg-slate-900 p-5 rounded-2xl mb-4 border border-slate-100 dark:border-slate-800 shadow-sm flex-row relative overflow-hidden">
                                     {/* Left decorative bar */}
                                     <View className="absolute left-0 top-0 bottom-0 w-1.5 bg-indigo-500" />
@@ -159,7 +214,7 @@ export default function CourseDetailScreen() {
                                                 <Feather name="clock" size={12} color={isDark ? "#94a3b8" : "#94a3b8"} />
                                                 <Text className="text-slate-400 dark:text-gray-500 text-xs ml-1.5 font-medium">{module.duration}</Text>
                                             </View>
-                                            <TouchableOpacity className="flex-row items-center">
+                                            <TouchableOpacity className="flex-row items-center" onPress={() => router.push(`/course/${course.id}/module/${module.id}`)}>
                                                 <Text className="text-indigo-600 font-bold text-xs mr-1">Start</Text>
                                                 <Feather name="chevron-right" size={14} color="#4F46E5" />
                                             </TouchableOpacity>
@@ -167,7 +222,7 @@ export default function CourseDetailScreen() {
                                     </View>
                                 </View>
                             ))}
-                            {(!course.modules || course.modules.length === 0) && (
+                            {(modules.length === 0) && (
                                 <View className="items-center py-8">
                                     <Text className="text-slate-400 dark:text-gray-500">No modules found. Try refreshing.</Text>
                                     <Button title="Retry Generation" onPress={generateContent} variant="outline" className="mt-4" />

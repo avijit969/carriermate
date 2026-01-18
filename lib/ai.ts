@@ -1,14 +1,11 @@
-
-import { createOpenAI } from '@ai-sdk/openai';
 import { generateText, Output } from 'ai';
 import { z } from 'zod';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 
 const google = createGoogleGenerativeAI({
-  apiKey: "AIzaSyCWTS1fBWaf_lMkDdVLDWY4Fi-Er3t_EXU",
+  apiKey: process.env.EXPO_PUBLIC_GOOGLE_API_KEY,
 });
 
-// Schema definition matching the InstantDB 'courses' entity
 const courseSchema = z.object({
   title: z.string('eg Web Development Bootcamp'),
   description: z.string('eg Web Development Bootcamp'),
@@ -24,9 +21,9 @@ const learningPathSchema = z.object({
 const moduleSchema = z.object({
   title: z.string(),
   description: z.string(),
-  duration: z.string(), // e.g., "1 Hour"
+  duration: z.string(),
   type: z.enum(['video', 'quiz', 'article', 'assignment']),
-  content: z.string(), // The actual content text or summary
+  content: z.string(),
 });
 
 const courseContentSchema = z.object({
@@ -34,11 +31,6 @@ const courseContentSchema = z.object({
 });
 
 export async function generateLearningPath(profile: any) {
-  const apiKey = process.env.EXPO_PUBLIC_OPENAI_API_KEY;
-  if (!apiKey) {
-    throw new Error("Missing EXPO_PUBLIC_OPENAI_API_KEY. Please set it in your .env file.");
-  }
-
   const prompt = `
     Generate a personalized learning path of 5-7 vocational and skill-based courses for a user with the following profile.
     The goal is to help them achieve their career aspirations and improve employability in the Indian job market.
@@ -74,13 +66,28 @@ export async function generateLearningPath(profile: any) {
   }
 }
 
-export async function generateCourseContent(courseTitle: string, userProfile: any) {
-    const apiKey = process.env.EXPO_PUBLIC_OPENAI_API_KEY;
-    if (!apiKey) {
-      throw new Error("Missing EXPO_PUBLIC_OPENAI_API_KEY.");
-    }
+// Helper to search YouTube
+async function searchYouTubeVideo(query: string): Promise<string | null> {
+  try {
+    const apiKey = process.env.EXPO_PUBLIC_YOUTUBE_API_KEY;
+    if (!apiKey) return null;
 
-    const prompt = `
+    const response = await fetch(
+      `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=1&q=${encodeURIComponent(query)}&type=video&key=${apiKey}`
+    );
+    const data = await response.json();
+    if (data.items && data.items.length > 0) {
+      return `https://www.youtube.com/watch?v=${data.items[0].id.videoId}`;
+    }
+    return null;
+  } catch (error) {
+    console.warn("YouTube Search Error:", error);
+    return null;
+  }
+}
+
+export async function generateCourseContent(courseTitle: string, userProfile: any) {
+  const prompt = `
         Generate a detailed curriculum (modules/lessons) for the vocational course titled "${courseTitle}".
         The user has a background in ${userProfile?.educationLevel || 'General Education'}.
         
@@ -89,20 +96,36 @@ export async function generateCourseContent(courseTitle: string, userProfile: an
         - Description (2-3 sentences)
         - Duration (est.)
         - Type (video, quiz, article, assignment) - Mix these up.
-        - Content: A brief summary or bullet points of what specifically will be taught.
+        - Content: 
+            - If type is 'video', provide a brief summary of what the video covers.
+            - If type is 'article', provide a substantial paragraph of educational text content teaching the topic (at least 150 words).
+            - If type is 'quiz', provide a short description or placeholder.
+            - If type is 'assignment', provide a brief assignment description.
     `;
 
-    try {
-        const { output } = await generateText({
-             model: google("gemini-2.5-flash"),
-            output: Output.object({
-                schema: courseContentSchema,
-            }),
-            prompt: prompt,
-        });
-        return output.modules;
-    } catch (error) {
-        console.error("Course Content Generation Error:", error);
-        throw error;
-    }
+  try {
+    const { output } = await generateText({
+      model: google("gemini-2.5-flash-lite"),
+      output: Output.object({
+        schema: courseContentSchema,
+      }),
+      prompt: prompt,
+    });
+
+    // Check for video modules and enhance with real YouTube links
+    const enhancedModules = await Promise.all(output.modules.map(async (mod) => {
+      if (mod.type === 'video') {
+        const videoLink = await searchYouTubeVideo(`${mod.title}`);
+        if (videoLink) {
+          return { ...mod, content: videoLink };
+        }
+      }
+      return mod;
+    }));
+
+    return enhancedModules;
+  } catch (error) {
+    console.error("Course Content Generation Error:", error);
+    throw error;
+  }
 }

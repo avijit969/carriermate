@@ -14,25 +14,25 @@ const _schema = i.schema({
     }),
     profiles: i.entity({
       // Progress tracking
-      onboardingStep: i.number(), 
-      
+      onboardingStep: i.number(),
+
       // Step 1: Personal
       fullName: i.string(),
       dob: i.string().optional(),
       gender: i.string().optional(),
-      
+
       // Step 2: Education
       educationLevel: i.string(), // e.g., "10th", "12th", "Graduate"
       institutionName: i.string().optional(),
       passingYear: i.string().optional(),
       major: i.string().optional(), // Stream or Branch
-      
+
       // Step 3: Socio-Economic
       annualFamilyIncome: i.string().optional(),
       category: i.string().optional(), // General, SC/ST, OBC
       state: i.string().optional(),
       district: i.string().optional(),
-      
+
       // Step 4: Aspirations
       careerGoal: i.string(), // "Job", "Higher Studies", "Business"
       preferredJobRoles: i.json().optional(), // Array of strings
@@ -47,7 +47,14 @@ const _schema = i.schema({
       image: i.string().optional(),
       rating: i.number().optional(),
       enrolledCount: i.number().optional(),
-      modules: i.json().optional(), // AI Generated Modules
+    }),
+    modules: i.entity({
+      title: i.string(),
+      description: i.string(),
+      type: i.string(), // "video", "article", "quiz"
+      content: i.string(), // youtube url or article text
+      duration: i.string(),
+      order: i.number(),
     }),
     enrollments: i.entity({
       progress: i.number(), // 0-100
@@ -57,6 +64,19 @@ const _schema = i.schema({
   },
   rooms: {},
   links: {
+    courseModules: {
+      forward: {
+        on: "modules",
+        has: "one",
+        label: "course",
+        onDelete: "cascade",
+      },
+      reverse: {
+        on: "recommendedCourses",
+        has: "many",
+        label: "modules",
+      },
+    },
     $usersLinkedPrimaryUser: {
       forward: {
         on: "$users",
@@ -83,16 +103,16 @@ const _schema = i.schema({
         onDelete: "cascade",
       },
     },
-    userImage:{
-      forward:{
-        on:"$files",
-        has:"one",
-        label:"userImage",
+    userImage: {
+      forward: {
+        on: "$files",
+        has: "one",
+        label: "userImage",
       },
-      reverse:{
-        on:"$users",
-        has:"one",
-        label:"userImage"
+      reverse: {
+        on: "$users",
+        has: "one",
+        label: "userImage"
       },
     },
     courseEnrollment: {
@@ -138,7 +158,7 @@ const _schema = i.schema({
 
 // This helps TypeScript display nicer intellisense
 type _AppSchema = typeof _schema;
-interface AppSchema extends _AppSchema {}
+interface AppSchema extends _AppSchema { }
 const schema: AppSchema = _schema;
 
 export type { AppSchema };
