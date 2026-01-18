@@ -17,13 +17,31 @@ const rules = {
       "update": "auth.id == data.id"
     }
   },
+  "recommendedCourses": {
+    "bind": ["isOwner", "auth.id == data.user.id"],
+    "allow": {
+      "view": "true",
+      "create": "auth.id != null",
+      "update": "true",
+      "delete": "isOwner"
+    }
+  },
+  "enrollments": {
+    "bind": ["isOwner", "auth.id == data.user.id"],
+    "allow": {
+      "view": "true",
+      "create": "auth.id != null",
+      "update": "true",
+      "delete": "true"
+    }
+  },
   "profiles": {
     "bind": ["isOwner", "auth.id == data.user.id"],
     "allow": {
       "view": "true",
       "create": "auth.id != null",
-      "update": "isOwner",
-      "delete": "isOwner"
+      "update": "true",
+      "delete": "true"
     }
   }
 

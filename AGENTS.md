@@ -4,6 +4,7 @@ with excellent visual asthetics using InstantDB as the backend.
 
 # About InstantDB aka Instant
 
+
 Instant is a client-side database (Modern Firebase) with built-in queries, transactions, auth, permissions, storage, real-time, and offline support.
 
 # Instant SDKs

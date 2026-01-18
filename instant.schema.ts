@@ -37,7 +37,23 @@ const _schema = i.schema({
       careerGoal: i.string(), // "Job", "Higher Studies", "Business"
       preferredJobRoles: i.json().optional(), // Array of strings
       skills: i.json().optional(), // Array of strings
-    })
+    }),
+    recommendedCourses: i.entity({
+      title: i.string(),
+      description: i.string(),
+      category: i.string(), // e.g. "IT", "Healthcare", "Construction"
+      level: i.string(), // e.g. "NSQF Level 4"
+      duration: i.string(), // e.g. "3 Months"
+      image: i.string().optional(),
+      rating: i.number().optional(),
+      enrolledCount: i.number().optional(),
+      modules: i.json().optional(), // AI Generated Modules
+    }),
+    enrollments: i.entity({
+      progress: i.number(), // 0-100
+      status: i.string(), // "active", "completed"
+      lastAccessed: i.string(),
+    }),
   },
   rooms: {},
   links: {
@@ -78,7 +94,45 @@ const _schema = i.schema({
         has:"one",
         label:"userImage"
       },
-    }
+    },
+    courseEnrollment: {
+      forward: {
+        on: "enrollments",
+        has: "one",
+        label: "course",
+        onDelete: "cascade",
+      },
+      reverse: {
+        on: "recommendedCourses",
+        has: "many",
+        label: "enrollments",
+      },
+    },
+    userEnrollment: {
+      forward: {
+        on: "enrollments",
+        has: "one",
+        label: "user",
+        onDelete: "cascade",
+      },
+      reverse: {
+        on: "$users",
+        has: "many",
+        label: "enrollments",
+      },
+    },
+    userRecommendedCourses: {
+      forward: {
+        on: "recommendedCourses",
+        has: "one",
+        label: "user",
+      },
+      reverse: {
+        on: "$users",
+        has: "many",
+        label: "recommendedCourses",
+      },
+    },
   },
 });
 

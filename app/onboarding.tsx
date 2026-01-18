@@ -12,6 +12,7 @@ import Button from '@/components/ui/Button';
 import { useAlert } from '@/components/ui/CustomAlert';
 import LoadingScreen from '@/components/LoadingScreen';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useColorScheme } from '@/hooks/useColorScheme';
 
 const { width } = Dimensions.get('window');
 
@@ -20,30 +21,31 @@ const OptionCard = ({ label, selected, onPress, icon }: any) => (
     <TouchableOpacity
         onPress={onPress}
         activeOpacity={0.7}
-        className={`p-5 rounded-2xl border-2 mb-4 flex-row items-center transition-all shadow-sm ${selected ? 'border-b-4 border-indigo-600 bg-indigo-50 shadow-indigo-100' : 'border-gray-100 bg-white border-b-4'}`}
+        className={`p-5 rounded-2xl border-2 mb-4 flex-row items-center transition-all shadow-sm ${selected ? 'border-b-4 border-indigo-600 bg-indigo-50 dark:bg-indigo-950/30 shadow-indigo-100 dark:shadow-none' : 'border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 border-b-4'}`}
     >
-        <View className={`w-12 h-12 rounded-full items-center justify-center mr-4 ${selected ? 'bg-indigo-600' : 'bg-gray-100'}`}>
+        <View className={`w-12 h-12 rounded-full items-center justify-center mr-4 ${selected ? 'bg-indigo-600' : 'bg-gray-100 dark:bg-slate-800'}`}>
             <Feather name={icon || 'circle'} size={22} color={selected ? 'white' : '#6B7280'} />
         </View>
-        <Text className={`font-bold text-lg ${selected ? 'text-indigo-900' : 'text-gray-600'}`}>{label}</Text>
-        {selected && <View className="ml-auto bg-indigo-100 p-1 rounded-full"><Feather name="check" size={16} color="#4F46E5" /></View>}
+        <Text className={`font-bold text-lg ${selected ? 'text-indigo-900 dark:text-indigo-300' : 'text-gray-600 dark:text-gray-300'}`}>{label}</Text>
+        {selected && <View className="ml-auto bg-indigo-100 dark:bg-indigo-900 p-1 rounded-full"><Feather name="check" size={16} color="#4F46E5" /></View>}
     </TouchableOpacity>
 );
 
 const ModernInput = ({ label, value, onChangeText, placeholder, keyboardType = 'default', icon, multiline }: any) => (
     <View className="mb-6">
-        <Text className="text-gray-700 font-bold mb-2 ml-1 text-base tracking-wide">{label}</Text>
-        <View className={`flex-row items-center border border-gray-200 bg-white rounded-2xl px-4 ${multiline ? 'py-3' : 'py-4'} focus:border-indigo-500 shadow-sm focus:shadow-md transition-all`}>
+        <Text className="text-gray-700 dark:text-gray-300 font-bold mb-2 ml-1 text-base tracking-wide">{label}</Text>
+        <View className={`flex-row items-center border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-2xl px-4 ${multiline ? 'py-3' : 'py-4'} focus:border-indigo-500 shadow-sm focus:shadow-md transition-all`}>
             {icon && <Feather name={icon} size={20} color="#9CA3AF" className="mr-3" />}
             <TextInput
-                className="flex-1 text-gray-900 font-medium text-base h-full"
+                className="flex-1 text-gray-900 dark:text-gray-100 font-medium text-base h-full"
                 value={value}
                 onChangeText={onChangeText}
                 placeholder={placeholder}
-                placeholderTextColor="#D1D5DB"
+                placeholderTextColor="#9CA3AF"
                 keyboardType={keyboardType}
                 multiline={multiline}
                 textAlignVertical={multiline ? 'top' : 'center'}
+                style={{ color: '#000000' }} // Keep generic, but className should override or use dynamic style if nativewind fails on text color for input sometimes
             />
         </View>
     </View>
@@ -64,33 +66,33 @@ const DateInput = ({ label, value, onChange, icon }: any) => {
 
     return (
         <View className="mb-6">
-            <Text className="text-gray-700 font-bold mb-2 ml-1 text-base tracking-wide">{label}</Text>
+            <Text className="text-gray-700 dark:text-gray-300 font-bold mb-2 ml-1 text-base tracking-wide">{label}</Text>
             <TouchableOpacity
                 onPress={() => setShow(!show)}
                 activeOpacity={0.7}
-                className={`flex-row items-center border border-gray-200 bg-white rounded-2xl px-4 py-4 shadow-sm ${show ? 'border-indigo-500 ring-2 ring-indigo-100' : ''}`} // Added ring effect logic if needed, simplify for now
+                className={`flex-row items-center border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-2xl px-4 py-4 shadow-sm ${show ? 'border-indigo-500 ring-2 ring-indigo-100' : ''}`}
             >
                 <Feather name={icon || 'calendar'} size={20} color="#9CA3AF" className="mr-3" />
-                <Text className={`flex-1 font-medium text-base ${value ? 'text-gray-900' : 'text-gray-400'}`}>
+                <Text className={`flex-1 font-medium text-base ${value ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400'}`}>
                     {value || "Select Date (YYYY-MM-DD)"}
                 </Text>
                 <Feather name="chevron-down" size={20} color="#9CA3AF" />
             </TouchableOpacity>
 
             {show && (
-                <View className={Platform.OS === 'ios' ? 'mt-2 bg-white rounded-xl p-2 border border-gray-100 shadow-sm' : ''}>
+                <View className={Platform.OS === 'ios' ? 'mt-2 bg-white dark:bg-slate-800 rounded-xl p-2 border border-gray-100 dark:border-slate-700 shadow-sm' : ''}>
                     <DateTimePicker
                         testID="dateTimePicker"
                         value={dateValue}
                         mode="date"
                         is24Hour={true}
-                        display={Platform.OS === 'ios' ? 'inline' : 'default'} // Inline for iOS looks modern
+                        display={Platform.OS === 'ios' ? 'inline' : 'default'}
                         onChange={handleChange}
                         accentColor="#4F46E5"
                         textColor="#1F2937"
                     />
                     {Platform.OS === 'ios' && (
-                        <TouchableOpacity onPress={() => setShow(false)} className="items-center py-3 border-t border-gray-100 mt-2">
+                        <TouchableOpacity onPress={() => setShow(false)} className="items-center py-3 border-t border-gray-100 dark:border-slate-700 mt-2">
                             <Text className="text-indigo-600 font-bold">Done</Text>
                         </TouchableOpacity>
                     )}
@@ -103,6 +105,8 @@ const DateInput = ({ label, value, onChange, icon }: any) => {
 export default function OnboardingScreen() {
     const { showAlert } = useAlert();
     const router = useRouter();
+    const { colorScheme } = useColorScheme();
+    const isDark = colorScheme === 'dark';
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
     const { user } = db.useAuth();
@@ -204,15 +208,15 @@ export default function OnboardingScreen() {
                 return (
                     <Animated.View entering={FadeInRight} exiting={FadeOutLeft} key="step1">
                         <View className="mb-8">
-                            <Text className="text-4xl font-extrabold text-gray-900 mb-2">Introduction</Text>
-                            <Text className="text-gray-500 text-lg leading-6">Let's start with the basics to setup your profile.</Text>
+                            <Text className="text-4xl font-extrabold text-gray-900 dark:text-white mb-2">Introduction</Text>
+                            <Text className="text-gray-500 dark:text-gray-400 text-lg leading-6">Let's start with the basics to setup your profile.</Text>
                         </View>
 
                         <ModernInput icon="user" label="Full Name" value={formData.fullName} onChangeText={(t: string) => updateForm('fullName', t)} placeholder="e.g. Alex Johnson" />
 
                         <DateInput icon="calendar" label="Date of Birth" value={formData.dob} onChange={(t: string) => updateForm('dob', t)} />
 
-                        <Text className="text-gray-700 font-bold mb-3 ml-1 text-base tracking-wide">Gender</Text>
+                        <Text className="text-gray-700 dark:text-gray-300 font-bold mb-3 ml-1 text-base tracking-wide">Gender</Text>
                         <View className="flex-row gap-3 mb-4">
                             {['Male', 'Female', 'Other'].map((g) => (
                                 <TouchableOpacity
@@ -222,11 +226,11 @@ export default function OnboardingScreen() {
                                         Haptics.selectionAsync();
                                     }}
                                     activeOpacity={0.8}
-                                    className={`flex-1 py-4 items-center rounded-2xl border-b-4 transition-all shadow-sm ${formData.gender === g ? 'bg-indigo-600 border-indigo-800 shadow-indigo-200' : 'bg-white border-gray-200 shadow-gray-100'}`}
+                                    className={`flex-1 py-4 items-center rounded-2xl border-b-4 transition-all shadow-sm ${formData.gender === g ? 'bg-indigo-600 border-indigo-800 shadow-indigo-200' : 'bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-800 shadow-gray-100 dark:shadow-none'}`}
                                 >
                                     <View className="flex-row items-center gap-2">
                                         {formData.gender === g && <Feather name="check" size={16} color="white" />}
-                                        <Text className={`font-bold text-base ${formData.gender === g ? 'text-white' : 'text-gray-600'}`}>{g}</Text>
+                                        <Text className={`font-bold text-base ${formData.gender === g ? 'text-white' : 'text-gray-600 dark:text-gray-300'}`}>{g}</Text>
                                     </View>
                                 </TouchableOpacity>
                             ))}
@@ -237,8 +241,8 @@ export default function OnboardingScreen() {
                 return (
                     <Animated.View entering={FadeInRight} exiting={FadeOutLeft} key="step2">
                         <View className="mb-8">
-                            <Text className="text-4xl font-extrabold text-gray-900 mb-2">Education</Text>
-                            <Text className="text-gray-500 text-lg leading-6">Your academic background helps us match opportunities.</Text>
+                            <Text className="text-4xl font-extrabold text-gray-900 dark:text-white mb-2">Education</Text>
+                            <Text className="text-gray-500 dark:text-gray-400 text-lg leading-6">Your academic background helps us match opportunities.</Text>
                         </View>
 
                         <ModernInput icon="book" label="Highest Qualification" value={formData.educationLevel} onChangeText={(t: string) => updateForm('educationLevel', t)} placeholder="e.g. B.Tech, B.A., 12th Pass" />
@@ -257,8 +261,8 @@ export default function OnboardingScreen() {
                 return (
                     <Animated.View entering={FadeInRight} exiting={FadeOutLeft} key="step3">
                         <View className="mb-8">
-                            <Text className="text-4xl font-extrabold text-gray-900 mb-2">Background</Text>
-                            <Text className="text-gray-500 text-lg leading-6">Help us find relevant schemes and scholarships.</Text>
+                            <Text className="text-4xl font-extrabold text-gray-900 dark:text-white mb-2">Background</Text>
+                            <Text className="text-gray-500 dark:text-gray-400 text-lg leading-6">Help us find relevant schemes and scholarships.</Text>
                         </View>
 
                         <ModernInput icon="dollar-sign" label="Annual Family Income" value={formData.annualFamilyIncome} onChangeText={(t: string) => updateForm('annualFamilyIncome', t)} placeholder="e.g. < 5 Lakhs" />
@@ -277,8 +281,8 @@ export default function OnboardingScreen() {
                 return (
                     <Animated.View entering={FadeInRight} exiting={FadeOutLeft} key="step4">
                         <View className="mb-8">
-                            <Text className="text-4xl font-extrabold text-gray-900 mb-2">Ambitions</Text>
-                            <Text className="text-gray-500 text-lg leading-6">Where do you want to go?</Text>
+                            <Text className="text-4xl font-extrabold text-gray-900 dark:text-white mb-2">Ambitions</Text>
+                            <Text className="text-gray-500 dark:text-gray-400 text-lg leading-6">Where do you want to go?</Text>
                         </View>
 
                         <ModernInput icon="target" label="Primary Career Goal" value={formData.careerGoal} onChangeText={(t: string) => updateForm('careerGoal', t)} placeholder="e.g. Software Engineer, UPSC" />
@@ -294,23 +298,23 @@ export default function OnboardingScreen() {
         )
     }
     return (
-        <SafeAreaView className="flex-1 bg-slate-50">
-            <StatusBar style="dark" />
+        <SafeAreaView className="flex-1 bg-slate-50 dark:bg-black">
+            <StatusBar style={isDark ? "light" : "dark"} />
             <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} className="flex-1">
                 <View className="flex-1 px-6 pt-4">
                     {/* Progress Header */}
                     <View className="flex-row items-center justify-between mb-8">
-                        <TouchableOpacity onPress={handleBack} className="w-10 h-10 items-center justify-center bg-white rounded-full border border-gray-200 shadow-sm">
-                            <Feather name="arrow-left" size={20} color="#1F2937" />
+                        <TouchableOpacity onPress={handleBack} className="w-10 h-10 items-center justify-center bg-white dark:bg-slate-900 rounded-full border border-gray-200 dark:border-slate-800 shadow-sm">
+                            <Feather name="arrow-left" size={20} color={isDark ? "white" : "#1F2937"} />
                         </TouchableOpacity>
-                        <View className="flex-1 h-3 bg-gray-200 mx-5 rounded-full overflow-hidden">
+                        <View className="flex-1 h-3 bg-gray-200 dark:bg-slate-800 mx-5 rounded-full overflow-hidden">
                             <Animated.View
                                 style={{ width: `${(step / 4) * 100}%` }}
                                 layout={LinearTransition.springify()}
                                 className="h-full bg-indigo-600 rounded-full"
                             />
                         </View>
-                        <Text className="text-indigo-900 font-extrabold text-lg">{step}/4</Text>
+                        <Text className="text-indigo-900 dark:text-indigo-300 font-extrabold text-lg">{step}/4</Text>
                     </View>
 
                     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 150 }}>
@@ -338,7 +342,7 @@ export default function OnboardingScreen() {
                                 size="lg"
                                 loading={loading}
                                 icon={!loading && step < 4 ? <Feather name="arrow-right" size={20} color="white" /> : undefined}
-                                className="w-full shadow-lg shadow-indigo-300"
+                                className="w-full shadow-lg shadow-indigo-300 dark:shadow-none"
                             />
                         </View>
                     </View>

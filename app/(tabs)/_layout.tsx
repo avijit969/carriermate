@@ -6,7 +6,8 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { Feather } from '@expo/vector-icons';
 
 export default function TabLayout() {
-    const colorScheme = useColorScheme();
+    const { colorScheme } = useColorScheme();
+    const isDark = colorScheme === 'dark';
 
     return (
         <Tabs
@@ -17,12 +18,12 @@ export default function TabLayout() {
                 tabBarStyle: Platform.select({
                     ios: {
                         position: 'absolute',
-                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                        backgroundColor: isDark ? 'rgba(15, 23, 42, 0.9)' : 'rgba(255, 255, 255, 0.9)',
                     },
                     default: {
-                        backgroundColor: 'white',
+                        backgroundColor: isDark ? '#0f172a' : 'white',
                         borderTopWidth: 1,
-                        borderTopColor: '#F3F4F6',
+                        borderTopColor: isDark ? '#1e293b' : '#F3F4F6',
                         elevation: 0,
                         height: 60,
                         paddingBottom: 10,
@@ -37,10 +38,10 @@ export default function TabLayout() {
                 }}
             />
             <Tabs.Screen
-                name="explore"
+                name="courses"
                 options={{
-                    title: 'Explore',
-                    tabBarIcon: ({ color }) => <Feather name="compass" size={24} color={color} />,
+                    title: 'Courses',
+                    tabBarIcon: ({ color }) => <Feather name="book" size={24} color={color} />,
                 }}
             />
             <Tabs.Screen
