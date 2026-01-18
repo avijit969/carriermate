@@ -10,7 +10,6 @@ const _schema = i.schema({
     }),
     $users: i.entity({
       email: i.string().unique().indexed().optional(),
-      imageURL: i.string().optional(),
       type: i.string().optional(),
     }),
     profiles: i.entity({
@@ -38,10 +37,7 @@ const _schema = i.schema({
       careerGoal: i.string(), // "Job", "Higher Studies", "Business"
       preferredJobRoles: i.json().optional(), // Array of strings
       skills: i.json().optional(), // Array of strings
-    }),
-    colors: i.entity({
-      value: i.string(),
-    }),
+    })
   },
   rooms: {},
   links: {
@@ -68,6 +64,19 @@ const _schema = i.schema({
         on: "$users",
         has: "one",
         label: "profile",
+        onDelete: "cascade",
+      },
+    },
+    userImage:{
+      forward:{
+        on:"$files",
+        has:"one",
+        label:"userImage",
+      },
+      reverse:{
+        on:"$users",
+        has:"one",
+        label:"userImage"
       },
     }
   },

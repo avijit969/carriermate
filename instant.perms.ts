@@ -3,22 +3,30 @@
 import type { InstantRules } from "@instantdb/react-native";
 
 const rules = {
-  /**
-   * Welcome to Instant's permission system!
-   * Right now your rules are empty. To start filling them in, check out the docs:
-   * https://www.instantdb.com/docs/permissions
-   *
-   * Here's an example to give you a feel:
-   * posts: {
-   *   allow: {
-   *     view: "true",
-   *     create: "isOwner",
-   *     update: "isOwner",
-   *     delete: "isOwner",
-   *   },
-   *   bind: ["isOwner", "auth.id != null && auth.id == data.ownerId"],
-   * },
-   */
+  "$files": {
+    "allow": {
+      "view": "true",
+      "create": "true",
+      "update": "true",
+      "delete": "true"
+    }
+  },
+  "$users": {
+    "allow": {
+      "view": "auth.id == data.id",
+      "update": "auth.id == data.id"
+    }
+  },
+  "profiles": {
+    "bind": ["isOwner", "auth.id == data.user.id"],
+    "allow": {
+      "view": "true",
+      "create": "auth.id != null",
+      "update": "isOwner",
+      "delete": "isOwner"
+    }
+  }
+
 } satisfies InstantRules;
 
 export default rules;

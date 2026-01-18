@@ -4,7 +4,7 @@ import { ActivityIndicator } from 'react-native'
 
 const LoadingScreen = () => {
     return (
-        <View>
+        <View className='flex-1 items-center justify-center bg-gray-50'>
             <ActivityIndicator size="large" color="indigo" />
         </View>
     )

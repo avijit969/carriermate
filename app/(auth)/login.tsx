@@ -6,9 +6,13 @@ import { Feather } from '@expo/vector-icons';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { db } from '@/lib/db';
+import Button from '@/components/ui/Button';
+
+import { useAlert } from '@/components/ui/CustomAlert';
 
 export default function LoginScreen() {
     const router = useRouter();
+    const { showAlert } = useAlert();
     const [email, setEmail] = useState('');
     const [code, setCode] = useState('');
     const [sentEmail, setSentEmail] = useState(false);
@@ -20,34 +24,34 @@ export default function LoginScreen() {
         if (!sentEmail) {
             // Send Magic Code
             if (!email) {
-                Alert.alert("Error", "Please enter your email address.");
+                showAlert({ title: "Error", message: "Please enter your email address.", type: 'error' });
                 return;
             }
             setLoading(true);
             try {
                 await db.auth.sendMagicCode({ email });
                 setSentEmail(true);
-                Alert.alert("Success", "Magic code sent! Please check your email.");
+                showAlert({ title: "Success", message: "Magic code sent! Please check your email.", type: 'success' });
             } catch (error: any) {
                 console.error(error);
-                Alert.alert("Error", error.body?.message || error.message || "Failed to send code.");
+                showAlert({ title: "Error", message: error.body?.message || error.message || "Failed to send code.", type: 'error' });
             } finally {
                 setLoading(false);
             }
         } else {
             // Verify Magic Code
             if (!code) {
-                Alert.alert("Error", "Please enter the code sent to your email.");
+                showAlert({ title: "Error", message: "Please enter the code sent to your email.", type: 'error' });
                 return;
             }
             setLoading(true);
             try {
                 await db.auth.signInWithMagicCode({ email, code });
                 // Successful login
-                router.replace('/(tabs)/home');
+                router.replace('/onboarding');
             } catch (error: any) {
                 console.error(error);
-                Alert.alert("Error", error.body?.message || error.message || "Invalid code. Please try again.");
+                showAlert({ title: "Error", message: error.body?.message || error.message || "Invalid code. Please try again.", type: 'error' });
             } finally {
                 setLoading(false);
             }
@@ -59,7 +63,7 @@ export default function LoginScreen() {
             <StatusBar style="dark" />
             <Image
                 source={{ uri: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop' }}
-                className="absolute w-full h-full opacity-10"
+                className="absolute w-full h-full opacity-15"
                 blurRadius={10}
             />
 
@@ -122,15 +126,13 @@ export default function LoginScreen() {
                         </Animated.View>
                     )}
 
-                    <TouchableOpacity
+                    <Button
                         onPress={handleLogin}
-                        activeOpacity={0.8}
-                        className="bg-indigo-600 rounded-2xl py-4 shadow-lg shadow-indigo-200 items-center mt-4"
-                    >
-                        <Text className="text-white font-bold text-lg">
-                            {loading ? 'Processing...' : (sentEmail ? 'Verify Code' : 'Send Code')}
-                        </Text>
-                    </TouchableOpacity>
+                        title={loading ? 'Processing...' : (sentEmail ? 'Verify Code' : 'Send Code')}
+                        variant="primary"
+                        size="md"
+                        className="w-full mt-6"
+                    />
 
                     {!sentEmail && (
                         <View className="flex-row justify-center mt-6">
@@ -162,7 +164,7 @@ export default function LoginScreen() {
                                 <Feather name="github" size={24} color="black" />
                             </TouchableOpacity>
                             <TouchableOpacity className="w-16 h-16 bg-white border border-gray-100 rounded-2xl items-center justify-center shadow-sm">
-                                <Feather name="layout" size={24} color="black" />
+                                <Feather name="twitter" size={24} color="black" />
                             </TouchableOpacity>
                         </View>
                     </Animated.View>
